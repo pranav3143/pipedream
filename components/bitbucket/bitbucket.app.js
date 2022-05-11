@@ -20,7 +20,7 @@ module.exports = {
         };
 
         const data = await this._propDefinitionsOptions(url, params, context);
-        const options = data.values.map(workspace => ({
+        const options = data.values.map((workspace) => ({
           label: workspace.name,
           value: workspace.slug,
         }));
@@ -49,7 +49,7 @@ module.exports = {
         };
 
         const data = await this._propDefinitionsOptions(url, params, context);
-        const options = data.values.map(repository => ({
+        const options = data.values.map((repository) => ({
           label: repository.slug,
           value: repository.slug,
         }));
@@ -67,7 +67,10 @@ module.exports = {
       label: "Branch Name",
       description: "The name of the branch",
       async options(context) {
-        const { workspaceId, repositoryId } = context;
+        const {
+          workspaceId,
+          repositoryId,
+        } = context;
         const url = this._repositoryBranchesEndpoint(workspaceId, repositoryId);
         const params = {
           sort: "name",
@@ -78,7 +81,7 @@ module.exports = {
         };
 
         const data = await this._propDefinitionsOptions(url, params, context);
-        const options = data.values.map(branch => ({
+        const options = data.values.map((branch) => ({
           label: branch.name,
           value: branch.name,
         }));
@@ -144,13 +147,19 @@ module.exports = {
       return `${baseUrl}/repositories/${workspaceId}/${repositoryId}/commits/${branchName}`;
     },
     _hooksEndpointUrl(hookPathProps) {
-      const { workspaceId, repositoryId } = hookPathProps;
+      const {
+        workspaceId,
+        repositoryId,
+      } = hookPathProps;
       return repositoryId ?
         this._repositoryHooksEndpointUrl(workspaceId, repositoryId) :
         this._workspaceHooksEndpointUrl(workspaceId);
     },
     _hookEndpointUrl(hookPathProps, hookId) {
-      const { workspaceId, repositoryId } = hookPathProps;
+      const {
+        workspaceId,
+        repositoryId,
+      } = hookPathProps;
       return repositoryId ?
         this._repositoryHookEndpointUrl(workspaceId, repositoryId, hookId) :
         this._workspaceHookEndpointUrl(workspaceId, hookId);
@@ -174,14 +183,20 @@ module.exports = {
       return `${baseUrl}/{${hookId}}`;
     },
     _formatEventTypeOption(eventType) {
-      const { category, label, event } = eventType;
+      const {
+        category,
+        label,
+        event,
+      } = eventType;
       const optionLabel = `${category} ${label}`;
       return {
         label: optionLabel,
         value: event,
       };
     },
-    async _propDefinitionsOptions(url, params, { page, prevContext }) {
+    async _propDefinitionsOptions(url, params, {
+      page, prevContext,
+    }) {
       let requestConfig = this._makeRequestConfig();  // Basic axios request config
       if (page === 0) {
         // First time the options are being retrieved.
@@ -201,7 +216,9 @@ module.exports = {
         url = prevContext.nextPageUrl;
       } else {
         // No more options available.
-        return { values: [] };
+        return {
+          values: [],
+        };
       }
 
       const { data } = await axios.get(url, requestConfig);
@@ -219,7 +236,10 @@ module.exports = {
       let url = this._branchCommitsEndpoint(workspaceId, repositoryId, branchName);
       do {
         const { data } = await axios.get(url, requestConfig);
-        const { values, next } = data;
+        const {
+          values,
+          next,
+        } = data;
 
         // Yield the retrieved commits in a serial manner, until
         // we exhaust the response from the BitBucket API, or we reach
@@ -230,6 +250,38 @@ module.exports = {
         }
 
         url = next;
+      } while (url);
+    },
+    async *getAllEventTypes(subjectType) {
+      const url = this._eventTypesEndpoint(subjectType);
+      const params = {
+        fields: [
+          "next",
+          "values.category",
+          "values.event",
+          "values.label",
+        ],
+      };
+
+      let context = {
+        page: 0,
+      };
+
+      do {
+        const {
+          values,
+          page,
+          next,
+        } = await this._propDefinitionsOptions(url,
+          params,
+          context);
+        for (const items of values) {
+          yield items;
+        }
+        context = {
+          page,
+          nextPageUrl: next,
+        };
       } while (url);
     },
     _authToken() {
@@ -248,7 +300,7 @@ module.exports = {
     async createHook(opts) {
       const {
         hookParams,
-        hookPathProps
+        hookPathProps,
       } = opts;
       const url = this._hooksEndpointUrl(hookPathProps);
       const requestConfig = this._makeRequestConfig();
@@ -259,7 +311,10 @@ module.exports = {
       };
     },
     async deleteHook(opts) {
-      const { hookId, hookPathProps } = opts;
+      const {
+        hookId,
+        hookPathProps,
+      } = opts;
       const url = this._hookEndpointUrl(hookPathProps, hookId);
       const requestConfig = this._makeRequestConfig();
       return axios.delete(url, requestConfig);
